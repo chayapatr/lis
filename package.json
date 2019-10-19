@@ -1,0 +1,11 @@
+{
+  "name": "lis",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/chayapatr/lis.git",
+  "author": "Chayapatr Archiwaranguprok <mail@chayapatr.com>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}
