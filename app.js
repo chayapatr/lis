@@ -1,8 +1,5 @@
-require('dotenv').config()
-
 const express = require('express')
 const app = express()
-
 const PORT = process.env.PORT || 3000
 
 const line = require('@line/bot-sdk')
@@ -11,44 +8,58 @@ const axios = require('axios')
 const dialogflow = require('dialogflow')
 const uuid = require('uuid')
 
-const config = {
+require('dotenv').config()
+
+const lineConfig = {
     channelAccessToken: process.env.channelAccessToken,
     channelSecret: process.env.channelSecret
 }
 
-const client = new line.Client(config)
+const client = new line.Client(lineConfig)
 
-app.post('/callback', line.middleware(config), (req, res) => {
+app.post('/callback', line.middleware(lineConfig), (req, res) => {
     Promise
         .all(req.body.events.map(handleEvent))
         .then((result) => res.json(result))
+        .catch(err => console.log(err))
 })
 
 const handleEvent = async event => {
     let returnText = JSON.stringify(event)
     if (event.type !== 'message') {
-        //return Promise.resolve(null);
-        returnText = "not message"
+        return Promise.resolve(null);
     }
-    if(event.message.type === 'text') {
+    if (event.message.type === 'text') {
         const message = event.message.text;
         let dfReturn = await df(message)
-        if(dfReturn.intent.displayName === 'lis.fetch') {
+        if (dfReturn.intent.displayName === 'lis.fetch') {
             let type = dfReturn.parameters.fields
-            if(type.weather.stringValue !== '') {
-                returnText = "weather" + JSON.stringify(event)
-            } else if(type.maidreamin.stringValue !== '') {
-                returnText = "maid" + JSON.stringify(event)
+            if (type.maidreamin.stringValue !== '') {
+                let fetch = await axios.get("https://maidreamin.now.sh")
+                returnText = JSON.stringify(fetch.data)
             } else {
                 returnText = "na" + JSON.stringify(event)
             }
         }
+        else {
+
+        }
     }
     if (event.message.type === 'location') {
-        returnText = JSON.stringify({
-            lat: event.message.latitude,
-            lon: event.message.longitude
-        });
+        let fetch = await axios({
+            "method": "GET",
+            "url": "https://air-quality.p.rapidapi.com/current/airquality",
+            "headers": {
+                "content-type": "application/octet-stream",
+                "x-rapidapi-host": "air-quality.p.rapidapi.com",
+                "x-rapidapi-key": process.env.rapidapikey
+            },
+            "params": {
+                "lon": event.message.longitude,
+                "lat": event.message.latitude
+            }
+        })
+        returnText = JSON.stringify(fetch.data)
     }
     // if (message === `aqi`) {
 
@@ -59,7 +70,7 @@ const handleEvent = async event => {
     return client.replyMessage(event.replyToken, {
         type: 'text',
         text: returnText
-    });
+    }).catch(err => console.log(JSON.stringify(err)))
 }
 
 const df = async (message, projectId = 'bot-lek') => {
@@ -79,39 +90,18 @@ const df = async (message, projectId = 'bot-lek') => {
     };
 
     const responses = await sessionClient.detectIntent(request);
-    console.log('Detected intent');
     const result = responses[0].queryResult;
-    console.log(`  Query: ${result.queryText}`);
-    console.log(`  Response: ${result.fulfillmentText}`);
     if (result.intent) {
-        console.log(`  Intent: ${result.intent.displayName}`);
         return result
     } else {
-        console.log(`  No intent matched.`);
         return `error`
     }
 }
 
 app.get("/", async (req, res) => {
-    let data = await func("hello")
-    res.send(data)
+    res.send("helloworld")
 })
 
 app.listen(PORT, () => {
     console.log(`Port : ${PORT}`)
 })
-
-// const express = require('express')
-// const app = express()
-
-// const PORT = process.env.PORT || 3000
-
-// app.get("/", (req,res) => {
-//     res.status(200).send("helloworld").end()
-// })
-
-// app.listen(PORT, () => {
-//     console.log(`${PORT}`)
-// })
-
-// module.export = app
