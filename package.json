@@ -6,6 +6,7 @@
   "author": "Chayapatr Archiwaranguprok <mail@chayapatr.com>",
   "license": "MIT",
   "dependencies": {
+    "@google-cloud/translate": "^4.2.1",
     "@line/bot-sdk": "^6.8.2",
     "@now/node": "^1.0.1",
     "airtable": "^0.7.1",
@@ -16,6 +17,7 @@
     "eslint-config-prettier": "^6.4.0",
     "eslint-plugin-prettier": "^3.1.1",
     "express": "^4.17.1",
+    "moment": "^2.24.0",
     "prettier": "^1.18.2",
     "uuid": "^3.3.3"
   },

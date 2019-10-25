@@ -1,18 +1,22 @@
 const dialogflow = require('dialogflow')
 const uuid = require('uuid')
 
+const languageDetect = require('./languageDetect')
+
 const df = async (message, projectId = 'bot-lek') => {
   const sessionId = uuid.v4()
 
   const sessionClient = new dialogflow.SessionsClient()
   const sessionPath = sessionClient.sessionPath(projectId, sessionId)
 
+  const language = await languageDetect(message)
+
   const request = {
     session: sessionPath,
     queryInput: {
       text: {
         text: message,
-        languageCode: 'en-US'
+        languageCode: language[0].language
       }
     }
   }
