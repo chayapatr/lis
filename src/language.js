@@ -9,4 +9,4 @@ const languageDetect = async text => {
   return detections
 }
 
-module.exports = languageDetect
+module.exports = { languageDetect }

@@ -1,7 +1,7 @@
 const dialogflow = require('dialogflow')
 const uuid = require('uuid')
 
-const languageDetect = require('./languageDetect')
+const { languageDetect } = require('./language')
 
 const df = async (message, projectId = 'bot-lek') => {
   const sessionId = uuid.v4()

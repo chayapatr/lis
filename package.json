@@ -6,6 +6,7 @@
   "author": "Chayapatr Archiwaranguprok <mail@chayapatr.com>",
   "license": "MIT",
   "dependencies": {
+    "@google-cloud/storage": "^4.0.0",
     "@google-cloud/translate": "^4.2.1",
     "@line/bot-sdk": "^6.8.2",
     "@now/node": "^1.0.1",
@@ -14,11 +15,10 @@
     "body-parser": "^1.19.0",
     "dialogflow": "^0.12.1",
     "dotenv": "^8.2.0",
-    "eslint-config-prettier": "^6.4.0",
-    "eslint-plugin-prettier": "^3.1.1",
     "express": "^4.17.1",
     "moment": "^2.24.0",
-    "prettier": "^1.18.2",
+    "promptpay-qr": "^0.4.4",
+    "sharp": "^0.23.1",
     "uuid": "^3.3.3"
   },
   "scripts": {
@@ -29,10 +29,13 @@
   },
   "devDependencies": {
     "eslint": "^6.5.1",
+    "eslint-config-prettier": "^6.4.0",
     "eslint-config-standard": "^14.1.0",
     "eslint-plugin-import": "^2.18.2",
     "eslint-plugin-node": "^10.0.0",
+    "eslint-plugin-prettier": "^3.1.1",
     "eslint-plugin-promise": "^4.2.1",
-    "eslint-plugin-standard": "^4.0.1"
+    "eslint-plugin-standard": "^4.0.1",
+    "prettier": "^1.18.2"
   }
 }
