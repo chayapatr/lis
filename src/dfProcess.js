@@ -3,7 +3,7 @@ const uuid = require('uuid')
 
 const { languageDetect } = require('./language')
 
-const df = async (message, projectId = 'bot-lek') => {
+const dfProcess = async (message, projectId = 'bot-lek') => {
   const sessionId = uuid.v4()
 
   const sessionClient = new dialogflow.SessionsClient()
@@ -30,4 +30,4 @@ const df = async (message, projectId = 'bot-lek') => {
   }
 }
 
-module.exports = df
+module.exports = dfProcess
