@@ -1,23 +1,24 @@
 const Airtable = require('airtable')
+const moment = require('moment')
 require('dotenv').config()
 
 const base = new Airtable({
-  apiKey: process.env.airtableapiKey
-}).base('appXA4yG3JmWsx2KA')
+  apiKey: process.env.AIRTABLE_API_KEY
+}).base(process.env.AIRTABLE_BASE)
 
 const table = 'Income/Expense'
 
-const accounting = async (name, tag, date, price) => {
-  // const d = new Date()
-  // const date = moment(d).format('YYYY-MM-DD')
-  base(table).create(
+const addRecord = async (name, tag, account) => {
+  const d = new Date()
+  const date = moment(d).format('YYYY-MM-DD')
+  const create = base(table).create(
     [
       {
         fields: {
           Name: name,
           Tag: tag,
-          Date: date, // '2019-10-24'
-          Price: price
+          Date: date,
+          Amount: account
         }
       }
     ],
@@ -26,37 +27,34 @@ const accounting = async (name, tag, date, price) => {
         console.error(err)
         return
       }
-      records.forEach(record => {
+      records.forEach(function(record) {
         console.log(record.getId())
       })
     }
   )
+  return create
 }
 
-base(table)
-  .select({
-    // Selecting the first 3 records in Main View:
-    maxRecords: 20,
-    view: 'Grid view'
+const search = filter =>
+  base(table)
+    .select(filter)
+    .all()
+
+const summary = async filter => {
+  const summary = {
+    sum: 0,
+    income: 0,
+    expense: 0
+  }
+  const tableData = await search(filter)
+  tableData.forEach(record => {
+    const fields = record.fields
+    summary.sum += fields.Amount
+    fields.Tag === 'Income'
+      ? (summary.income += fields.Amount)
+      : (summary.expense -= fields.Amount)
   })
-  .eachPage(
-    function page(records, fetchNextPage) {
-      // This function (`page`) will get called for each page of records.
+  return summary
+}
 
-      records.forEach(record => {
-        console.log('Retrieved', record.fields)
-      })
-
-      // To fetch the next page of records, call `fetchNextPage`.
-      // If there are more records, `page` will get called again.
-      // If there are no more records, `done` will get called.
-      fetchNextPage()
-    },
-    function done(err) {
-      if (err) {
-        console.error(err)
-      }
-    }
-  )
-
-module.exports = accounting
+module.exports = { addRecord, summary }

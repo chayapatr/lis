@@ -4,16 +4,15 @@ const PORT = process.env.PORT || 3000
 
 const line = require('@line/bot-sdk')
 const axios = require('axios')
-const moment = require('moment')
 
-const df = require('./src/df')
-const accounting = require('./src/accounting')
+const dfProcess = require('./src/dfProcess')
+const { addRecord } = require('./src/accounting')
 
 require('dotenv').config()
 
 const lineConfig = {
-  channelAccessToken: process.env.channelAccessToken,
-  channelSecret: process.env.channelSecret
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+  channelSecret: process.env.LINE_CHANNEL_SECRET
 }
 
 const client = new line.Client(lineConfig)
@@ -31,30 +30,49 @@ const handleEvent = async event => {
   }
 
   if (event.message.type === 'text') {
-    const dfReturn = await df(event.message.text)
-    const type = dfReturn.parameters.fields
+    const dfReturn = await dfProcess(event.message.text)
+    const fields = dfReturn.parameters.fields
+
     if (dfReturn.intent.displayName === 'lis.fetch') {
-      if (type.fetch.stringValue === 'maidreamin') {
+      if (fields.fetch.stringValue === 'maidreamin') {
         const fetch = await axios.get('https://maidreamin.now.sh')
         returnText = JSON.stringify(fetch.data)
       } else {
         returnText = 'na' + JSON.stringify(event)
       }
     } else if (dfReturn.intent.displayName === 'lis.accounting') {
-      const d = new Date()
-      const date = moment(d).format('YYYY-MM-DD')
-      const name = type.any.stringValue
-        ? type.any.stringValue
-        : type['a-type'].stringValue === 'Income'
-        ? 'Annual'
-        : type['a-type'].stringValue
-
-      accounting(
-        name,
-        type['a-type'].stringValue,
-        date,
-        type['number-integer'].numberValue
-      )
+      const tag = [
+        'Food',
+        'Transport',
+        'Movie',
+        'Study',
+        'Book',
+        'Online',
+        'etc',
+        'Income'
+      ]
+      if (tag.includes(fields['a-type'].stringValue)) {
+        const name =
+          fields.any.stringValue || fields['a-type'].stringValue
+        if (fields['a-type'].stringValue !== 'Income') {
+          fields['number-integer'].numberValue = -fields[
+            'number-integer'
+          ].numberValue
+        }
+        addRecord(
+          name,
+          fields['a-type'].stringValue,
+          fields['number-integer'].numberValue
+        )
+        returnText = JSON.stringify({
+          status: 'record added',
+          name: name,
+          type: fields['a-type'].stringValue,
+          amount: fields['number-integer'].numberValue
+        })
+      } else {
+        returnText = 'Type not found'
+      }
     }
   }
 
@@ -65,7 +83,7 @@ const handleEvent = async event => {
       headers: {
         'content-type': 'application/octet-stream',
         'x-rapidapi-host': 'air-quality.p.rapidapi.com',
-        'x-rapidapi-key': process.env.rapidapiKey
+        'x-rapidapi-key': process.env.RAPID_API_KEY
       },
       params: {
         lon: event.message.longitude,
