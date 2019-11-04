@@ -3,11 +3,9 @@ const app = express()
 const PORT = process.env.PORT || 3000
 
 const line = require('@line/bot-sdk')
-const axios = require('axios')
 
-const dfProcess = require('./src/dfProcess')
-const qrGenerate = require('./src/qrGenerate')
-const { addRecord } = require('./src/accounting')
+const handleMessage = require('./src/handleMessage')
+const handleTWFAMessage = require('./src/twfa')
 
 require('dotenv').config()
 
@@ -16,7 +14,14 @@ const lineConfig = {
   channelSecret: process.env.LINE_CHANNEL_SECRET
 }
 
+const lineTWFAConfig = {
+  channelAccessToken: process.env.TWFA_LINE_CHANNEL_ACCESS_TOKEN,
+  channelSecret: process.env.TWFA_LINE_CHANNEL_SECRET
+}
+
 const client = new line.Client(lineConfig)
+
+const TWFAClient = new line.Client(lineTWFAConfig)
 
 app.post('/callback', line.middleware(lineConfig), (req, res) => {
   Promise.all(req.body.events.map(handleEvent))
@@ -24,94 +29,37 @@ app.post('/callback', line.middleware(lineConfig), (req, res) => {
     .catch(err => console.log(err))
 })
 
+app.post('/twfa', line.middleware(lineTWFAConfig), (req, res) => {
+  Promise.all(req.body.events.map(twfaEvent))
+    .then(result => res.json(result))
+    .catch(err => console.log(err))
+})
+
+const twfaEvent = async event => {
+  if (
+    event.type !== 'message' ||
+    !event.message.text.includes('น้อง')
+  ) {
+    return Promise.resolve(null)
+  }
+  console.log(event)
+  const returnMessage = await handleTWFAMessage(event)
+  console.log(returnMessage)
+  if (returnMessage.type === 'return') {
+    return TWFAClient.replyMessage(
+      event.replyToken,
+      returnMessage.object
+    ).catch(err => console.log(err))
+  } else return Promise.resolve(null)
+}
+
 const handleEvent = async event => {
-  let returnText = JSON.stringify(event)
   if (event.type !== 'message') {
     return Promise.resolve(null)
   }
-
-  if (event.message.type === 'text') {
-    const dfReturn = await dfProcess(event.message.text)
-    if (dfReturn !== 'error') {
-      const fields = dfReturn.parameters.fields
-      if (dfReturn.intent.displayName === 'lis.fetch') {
-        if (fields.fetch.stringValue === 'maidreamin') {
-          const fetch = await axios.get('https://maidreamin.now.sh')
-          returnText = JSON.stringify(fetch.data)
-        } else {
-          returnText = 'na' + JSON.stringify(event)
-        }
-      } else if (dfReturn.intent.displayName === 'lis.accounting') {
-        const tag = [
-          'Food',
-          'Transport',
-          'Movie',
-          'Study',
-          'Book',
-          'Online',
-          'etc',
-          'Income'
-        ]
-        if (tag.includes(fields['a-type'].stringValue)) {
-          const name =
-            fields.any.stringValue || fields['a-type'].stringValue
-          if (fields['a-type'].stringValue !== 'Income') {
-            fields['number-integer'].numberValue = -fields[
-              'number-integer'
-            ].numberValue
-          }
-          addRecord(
-            name,
-            fields['a-type'].stringValue,
-            fields['number-integer'].numberValue
-          )
-          returnText = JSON.stringify({
-            status: 'record added',
-            name: name,
-            type: fields['a-type'].stringValue,
-            amount: fields['number-integer'].numberValue
-          })
-        } else {
-          returnText = 'Type not found'
-        }
-      } else if (dfReturn.intent.displayName === 'lis.money') {
-        const data = await qrGenerate(fields.number.numberValue)
-        console.log(data)
-        return client
-          .replyMessage(event.replyToken, {
-            type: 'image',
-            originalContentUrl: data,
-            previewImageUrl: data
-          })
-          .catch(err => console.log(JSON.stringify(err)))
-      }
-    } else {
-      returnText = 'error'
-    }
-  }
-
-  if (event.message.type === 'location') {
-    const fetch = await axios({
-      method: 'GET',
-      url: 'https://air-quality.p.rapidapi.com/current/airquality',
-      headers: {
-        'content-type': 'application/octet-stream',
-        'x-rapidapi-host': 'air-quality.p.rapidapi.com',
-        'x-rapidapi-key': process.env.RAPID_API_KEY
-      },
-      params: {
-        lon: event.message.longitude,
-        lat: event.message.latitude
-      }
-    })
-    returnText = JSON.stringify(fetch.data)
-  }
-
+  const returnMessage = await handleMessage(event)
   return client
-    .replyMessage(event.replyToken, {
-      type: 'text',
-      text: returnText
-    })
+    .replyMessage(event.replyToken, returnMessage)
     .catch(err => console.log(JSON.stringify(err)))
 }
 
