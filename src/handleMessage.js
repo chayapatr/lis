@@ -53,7 +53,6 @@ const handleMessage = async event => {
         }
       } else if (dfReturn.intent.displayName === 'lis.money') {
         const data = await qrGenerate(fields.number.numberValue)
-        console.log(data)
         return {
           type: 'image',
           originalContentUrl: data,

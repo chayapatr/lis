@@ -36,15 +36,10 @@ app.post('/twfa', line.middleware(lineTWFAConfig), (req, res) => {
 })
 
 const twfaEvent = async event => {
-  if (
-    event.type !== 'message' ||
-    !event.message.text.includes('น้อง')
-  ) {
+  if (event.type !== 'message') {
     return Promise.resolve(null)
   }
-  console.log(event)
   const returnMessage = await handleTWFAMessage(event)
-  console.log(returnMessage)
   if (returnMessage.type === 'return') {
     return TWFAClient.replyMessage(
       event.replyToken,
